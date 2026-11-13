@@ -1,0 +1,85 @@
+{
+  "name": "PDF end-to-end example",
+  "notes": [
+    "Patients, resources and the two predictions for P1 come from the project PDF (Complete end-to-end example).",
+    "Values the PDF leaves out (P1's MAP history, temperatures, respiratory rates, P2/P3 vitals) are illustrative.",
+    "Predictions listed here are used as given; run the demo with --models to replace them with the trained models' output."
+  ],
+  "patients": [
+    {
+      "pid": "P1",
+      "age": 72,
+      "sex": "m",
+      "vitals": {"hr": 125, "sbp": 84, "dbp": 50, "spo2": 88, "temp": 39.0, "rr": 26, "lactate": 3.1},
+      "low_bp": true,
+      "symptoms": ["chest_pain", "shortness_of_breath"],
+      "history": [
+        {"hr": 105, "map": 82, "spo2": 95, "temp": 38.2, "rr": 20, "lactate": 1.8},
+        {"hr": 112, "map": 78, "spo2": 93, "temp": 38.5, "rr": 22, "lactate": 2.2},
+        {"hr": 118, "map": 73, "spo2": 91, "temp": 38.7, "rr": 23, "lactate": 2.6},
+        {"hr": 125, "map": 67, "spo2": 89, "temp": 38.9, "rr": 25, "lactate": 2.9},
+        {"hr": 132, "map": 61, "spo2": 87, "temp": 39.0, "rr": 26, "lactate": 3.1}
+      ]
+    },
+    {
+      "pid": "P2",
+      "age": 45,
+      "sex": "f",
+      "vitals": {"hr": 98, "sbp": 122, "dbp": 78, "spo2": 97, "temp": 38.3, "rr": 18},
+      "symptoms": ["fever"],
+      "history": [
+        {"hr": 95, "map": 93, "spo2": 97, "temp": 38.1, "rr": 17, "lactate": 1.1},
+        {"hr": 97, "map": 92, "spo2": 97, "temp": 38.2, "rr": 18, "lactate": 1.2},
+        {"hr": 98, "map": 93, "spo2": 97, "temp": 38.3, "rr": 18, "lactate": 1.2}
+      ]
+    },
+    {
+      "pid": "P3",
+      "age": 30,
+      "sex": "m",
+      "vitals": {"hr": 82, "sbp": 125, "dbp": 80, "spo2": 99, "temp": 37.0, "rr": 16},
+      "symptoms": ["abdominal_pain"]
+    }
+  ],
+  "resources": {
+    "doctors": [
+      {"id": "D1", "type": "cardiology"},
+      {"id": "D2", "type": "general"}
+    ],
+    "nurses": [{"id": "N1"}, {"id": "N2"}],
+    "beds": [
+      {"id": "ICU1", "type": "icu"},
+      {"id": "EB1", "type": "emergency"},
+      {"id": "EB2", "type": "emergency"},
+      {"id": "EX1", "type": "exam_room"}
+    ],
+    "equipment": [
+      {"id": "M1", "type": "patient_monitor"},
+      {"id": "M2", "type": "patient_monitor"},
+      {"id": "M3", "type": "patient_monitor"},
+      {"id": "IP1", "type": "infusion_pump"},
+      {"id": "IP2", "type": "infusion_pump"},
+      {"id": "DF1", "type": "defibrillator"},
+      {"id": "V1", "type": "ventilator"}
+    ]
+  },
+  "predictions": {
+    "P1": {"ml": {"level": "High", "prob": 0.87}, "dl": {"level": "Critical", "prob": 0.91}},
+    "P2": {"ml": {"level": "Medium", "prob": 0.72}},
+    "P3": {"ml": {"level": "Low", "prob": 0.81}}
+  },
+  "events": [
+    {"description": "ICU1 becomes unavailable before P1's transfer",
+     "type": "resource_unavailable", "id": "ICU1"},
+    {"description": "A second critical patient, P4, arrives",
+     "type": "new_patient",
+     "patient": {"pid": "P4", "age": 58, "sex": "f",
+                 "vitals": {"hr": 136, "sbp": 78, "dbp": 46, "spo2": 85, "temp": 38.9, "rr": 32, "lactate": 4.6},
+                 "symptoms": ["confusion"]},
+     "predictions": {"dl": {"level": "Critical", "prob": 0.88}}},
+    {"description": "P2 deteriorates: new vitals, the DL model now says High",
+     "type": "new_measurement", "pid": "P2",
+     "measurement": {"hr": 116, "map": 70, "spo2": 93, "temp": 38.9, "rr": 24, "lactate": 2.4},
+     "predictions": {"dl": {"level": "High", "prob": 0.80}}}
+  ]
+}

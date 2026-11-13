@@ -1,0 +1,64 @@
+{
+  "age": 78.0,
+  "sex": "f",
+  "symptoms": [
+    "shortness_of_breath",
+    "confusion"
+  ],
+  "conditions": [
+    "copd",
+    "diabetes"
+  ],
+  "vitals": {
+    "hr": 124.0,
+    "sbp": 92.0,
+    "dbp": 54.0,
+    "spo2": 89.0,
+    "temp": 38.9,
+    "rr": 28.0,
+    "lactate": 3.4
+  },
+  "low_bp": false,
+  "history": [
+    {
+      "hr": 98.0,
+      "map": 88.0,
+      "spo2": 95.0,
+      "temp": 37.9,
+      "rr": 20.0,
+      "lactate": 1.6
+    },
+    {
+      "hr": 104.0,
+      "map": 84.0,
+      "spo2": 94.0,
+      "temp": 38.2,
+      "rr": 22.0,
+      "lactate": 1.9
+    },
+    {
+      "hr": 110.0,
+      "map": 80.0,
+      "spo2": 92.0,
+      "temp": 38.4,
+      "rr": 24.0,
+      "lactate": 2.3
+    },
+    {
+      "hr": 116.0,
+      "map": 76.0,
+      "spo2": 91.0,
+      "temp": 38.6,
+      "rr": 25.0,
+      "lactate": 2.7
+    },
+    {
+      "hr": 120.0,
+      "map": 72.0,
+      "spo2": 90.0,
+      "temp": 38.8,
+      "rr": 27.0,
+      "lactate": 3.0
+    }
+  ]
+}

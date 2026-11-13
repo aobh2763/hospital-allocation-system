@@ -1,0 +1,6 @@
+data/
+.venv/
+models/
+# the trained DL model is small (about 60 KB) and needed to run the agent without PyTorch
+!prediction/dl/models/
+__pycache__/

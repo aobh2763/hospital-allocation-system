@@ -1,0 +1,57 @@
+{
+  "name": "ICU reallocation",
+  "notes": [
+    "Same department as the PDF example. P5 has been in ICU1 since yesterday and has improved: Block 2 now rates them Medium, so they only need an emergency bed.",
+    "P1 (the PDF's critical patient) needs an ICU bed. Search should move P5 to an emergency bed and give ICU1 to P1 instead of putting P1 in an emergency bed."
+  ],
+  "patients": [
+    {
+      "pid": "P1",
+      "age": 72,
+      "sex": "m",
+      "vitals": {"hr": 125, "sbp": 84, "dbp": 50, "spo2": 88, "temp": 39.0, "rr": 26, "lactate": 3.1},
+      "low_bp": true,
+      "symptoms": ["chest_pain", "shortness_of_breath"]
+    },
+    {
+      "pid": "P2",
+      "age": 45,
+      "sex": "f",
+      "vitals": {"hr": 98, "sbp": 122, "dbp": 78, "spo2": 97, "temp": 38.3, "rr": 18},
+      "symptoms": ["fever"]
+    },
+    {
+      "pid": "P5",
+      "age": 60,
+      "sex": "f",
+      "status": "under_treatment",
+      "vitals": {"hr": 92, "sbp": 118, "dbp": 74, "spo2": 94, "temp": 37.4, "rr": 19}
+    }
+  ],
+  "resources": {
+    "doctors": [
+      {"id": "D1", "type": "cardiology"},
+      {"id": "D2", "type": "general"},
+      {"id": "D3", "type": "general", "available": false}
+    ],
+    "nurses": [{"id": "N1"}, {"id": "N2", "available": false}],
+    "beds": [
+      {"id": "ICU1", "type": "icu", "available": false},
+      {"id": "EB1", "type": "emergency"},
+      {"id": "EB2", "type": "emergency"},
+      {"id": "EX1", "type": "exam_room"}
+    ],
+    "equipment": [
+      {"id": "M1", "type": "patient_monitor"},
+      {"id": "M2", "type": "patient_monitor"},
+      {"id": "IP1", "type": "infusion_pump"},
+      {"id": "DF1", "type": "defibrillator"}
+    ]
+  },
+  "assignments": [["P5", "ICU1"], ["P5", "D3"], ["P5", "N2"]],
+  "predictions": {
+    "P1": {"ml": {"level": "High", "prob": 0.87}, "dl": {"level": "Critical", "prob": 0.91}},
+    "P2": {"ml": {"level": "Medium", "prob": 0.72}},
+    "P5": {"ml": {"level": "Medium", "prob": 0.70}, "dl": {"level": "Medium", "prob": 0.84}}
+  }
+}
