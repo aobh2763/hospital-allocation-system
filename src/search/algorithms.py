@@ -107,6 +107,8 @@ def allocation(problem: AllocationProblem, result: SearchResult) -> dict[str, An
     """The selected configuration, per patient, for Planning (Block 5)."""
     out: dict[str, Any] = {"patients": {}, "relocations": [], "waiting": [], "announcements": result.announcements}
     for pid in problem.order:
+        if pid in problem.upgrades:
+            continue
         out["patients"][pid] = {"risk": problem.patients[pid]["risk"], "bed": None, "doctor": None,
                                 "nurse": None, "equipment": {}}
     for a in result.actions:
@@ -115,6 +117,8 @@ def allocation(problem: AllocationProblem, result: SearchResult) -> dict[str, An
         elif a.name == "LeaveWaiting":
             out["waiting"].append(a.pid)
             out["patients"].pop(a.pid, None)
+        elif a.name == "StayInFallback":
+            continue
         elif a.name == "ReserveBed":
             out["patients"][a.pid]["bed"] = a.resource
         elif a.name == "AssignDoctor":
@@ -134,7 +138,7 @@ def check_allocation(problem: AllocationProblem, result: SearchResult) -> list[s
     freed: set[str] = set()
     taken: Counter = Counter()
     for a in result.actions:
-        if a.name == "LeaveWaiting":
+        if a.name in ("LeaveWaiting", "StayInFallback"):
             continue
         rid = a.target if a.name == "Relocate" else a.resource
         r = problem.resources[rid]
@@ -146,9 +150,9 @@ def check_allocation(problem: AllocationProblem, result: SearchResult) -> list[s
     errors += [f"{rid} is given to {n} patients at the same time" for rid, n in taken.items() if n > 1]
 
     filled = Counter((a.pid, problem.resources[a.resource].kind)
-                     for a in result.actions if a.name not in ("Relocate", "LeaveWaiting"))
+                     for a in result.actions if a.name not in ("Relocate", "LeaveWaiting", "StayInFallback"))
     for pid in problem.order:
-        if problem.patients[pid]["risk"] not in MANDATORY:
+        if problem.patients[pid]["risk"] not in MANDATORY or pid in problem.upgrades:
             continue
         for (_, kind), n in Counter((s.pid, s.kind) for s in problem.slots if s.pid == pid).items():
             if filled[(pid, kind)] < n:
@@ -161,6 +165,8 @@ def diagnose(problem: AllocationProblem) -> list[str]:
     available resources cannot cover, even with fallbacks and relocations."""
     demand: Counter = Counter()
     for s in problem.slots:
+        if s.kind == "upgrade":
+            continue
         if problem.mandatory(s.pid) and s.kind in ("nurse", "equipment"):
             demand[(s.kind, s.need)] += 1
         elif problem.mandatory(s.pid) and s.kind == "bed":

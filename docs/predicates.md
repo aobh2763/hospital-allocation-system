@@ -119,7 +119,7 @@ Search never calls Prolog:
       "urgent_evaluation": true, "reassess": false, "insufficient_data": false,
       "bed": "ICU", "specialist": "Cardiology", "doctor": null, "nurse": true,
       "equipment": ["Defibrillator", "InfusionPump", "PatientMonitor"],
-      "monitoring": "Continuous",
+      "monitoring": "Continuous", "assigned": [],
       "candidates": {
         "doctors": ["D1"], "beds": ["ICU1"], "nurses": ["N1", "N2"],
         "equipment": {"Defibrillator": ["DF1"], "InfusionPump": ["IP1"], "PatientMonitor": ["M1", "M2"]},
@@ -127,11 +127,16 @@ Search never calls Prolog:
       }
     }
   },
-  "resources": {"doctors": [...], "nurses": [...], "beds": [...], "equipment": [...]},
+  "resources": {"doctors": [{"id": "D1", "specialty": "Cardiology", "available": true, "assigned_to": null}, ...],
+                "nurses": [...], "beds": [...], "equipment": [...]},
   "shortages": [{"resource": "ICU bed", "patients": ["P1", "P4"], "available": 0}],
   "contract": {"P1": ["CanTreat(D1, P1)", "Priority(P1, 1)", "RequiresICU(P1)", "..."]}
 }
 ```
+
+`assigned` lists the resources a patient under treatment holds (`Assigned(P, R)`),
+and `assigned_to` names the holder of each resource. Search uses them to move a
+patient out of a bed they no longer need (see `docs/block4_search.md`).
 
 `KnowledgeBase.update()` also returns the difference with the previous update,
 per patient (`added`, `removed`, `risk`). Block 6 re-runs Search and Planning

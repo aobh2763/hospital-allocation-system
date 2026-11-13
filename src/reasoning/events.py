@@ -22,9 +22,12 @@ from reasoning.adapters import run_models
 from reasoning.kb import KnowledgeBase, UpdateResult
 
 
-def apply_event(kb: KnowledgeBase, event: dict[str, Any], ml=None, dl=None) -> UpdateResult:
+def apply_event(kb: KnowledgeBase, event: dict[str, Any], ml=None, dl=None,
+                use_given: bool = True) -> UpdateResult:
+    """``use_given=False`` ignores predictions written in the event and lets the
+    models compute them (the agent does this when it runs the models)."""
     kind = event["type"]
-    given = event.get("predictions", {})
+    given = event.get("predictions", {}) if use_given else {}
 
     if kind == "resource_unavailable":
         kb.set_available(event["id"], False)

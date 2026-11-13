@@ -128,8 +128,8 @@ def ask_history() -> list[dict[str, float]]:
     return rows
 
 
-def enter_patient() -> Patient:
-    print("New patient (P1). Press Enter to skip any optional value.\n")
+def enter_patient(pid: str = PID) -> Patient:
+    print(f"New patient ({pid}). Press Enter to skip any optional value.\n")
     age = ask_number("Age (years)", (0, 120), required=True)
     sex = ask("Sex (m/f)", "").lower()[:1] or None
     print()
@@ -146,10 +146,10 @@ def enter_patient() -> Patient:
     if "sbp" not in vitals:
         low_bp = ask("  Blood pressure low? (y/n)", "n").lower().startswith("y")
     history = ask_history()
-    return build_patient(age, sex, symptoms, conditions, vitals, low_bp, history)
+    return build_patient(age, sex, symptoms, conditions, vitals, low_bp, history, pid)
 
 
-def build_patient(age, sex, symptoms, conditions, vitals, low_bp, history) -> Patient:
+def build_patient(age, sex, symptoms, conditions, vitals, low_bp, history, pid: str = PID) -> Patient:
     """The current vitals become the last hour of the timeline the DL model reads."""
     current = {k: v for k, v in vitals.items() if k in HISTORY_COLUMNS}
     m = mean_arterial_pressure(vitals.get("sbp"), vitals.get("dbp"))
@@ -158,15 +158,15 @@ def build_patient(age, sex, symptoms, conditions, vitals, low_bp, history) -> Pa
     timeline = list(history) + ([current] if history and current else [])
     if not vitals and history:                 # only a timeline given: its last hour is "now"
         vitals = {k: v for k, v in history[-1].items()}
-    return Patient(pid=PID, age=age, sex=sex if sex in ("m", "f") else None, vitals=dict(vitals),
+    return Patient(pid=pid, age=age, sex=sex if sex in ("m", "f") else None, vitals=dict(vitals),
                    symptoms=symptoms, conditions=conditions, low_bp=low_bp,
                    history=timeline, source={"dataset": "typed in"})
 
 
-def load_patient(path: str) -> Patient:
+def load_patient(path: str, pid: str = PID) -> Patient:
     d = json.loads(Path(path).read_text())
     return build_patient(d.get("age"), d.get("sex"), d.get("symptoms", []), d.get("conditions", []),
-                         d.get("vitals", {}), d.get("low_bp", False), d.get("history", []))
+                         d.get("vitals", {}), d.get("low_bp", False), d.get("history", []), pid)
 
 
 def to_file(p: Patient, history_before_now: list[dict[str, float]], path: str) -> None:

@@ -3,9 +3,10 @@
     poetry run python src/search_compare.py              # full run (a minute or two)
     poetry run python src/search_compare.py --quick      # 2 seeds, up to 12 patients
 
-For each size n (4 to 20 patients) and seed, a department is built from the
+For each size n (4 to 20 patients), departments are built from the
 HLT-010 hospital data (FAC0003, 2023-01-02, day shift) with n Synthea patients
-whose ML and DL predictions are computed by the real models. Block 2 derives the
+whose ML and DL predictions are computed by the real models, until 5 of them
+have a valid allocation (the others are reported separately). Block 2 derives the
 needs, then both algorithms solve the same problem. Measured, as the PDF asks:
 execution time, states explored, solution cost and allocation quality
 (fallbacks, relocations, patients left waiting).
@@ -170,18 +171,23 @@ def main(argv=None) -> int:
     ap.add_argument("--quick", action="store_true")
     args = ap.parse_args(argv)
     sizes = range(4, 13, 2) if args.quick else range(4, 21, 2)
-    seeds = range(2) if args.quick else range(5)
+    target = 2 if args.quick else 5           # feasible departments per size
     no_symmetry_sizes = range(4, 9, 2) if args.quick else range(4, 11, 2)
 
     ml, dl = MLAdapter(), DLAdapter()
     rows: list[dict] = []
     for n in sizes:
-        for seed in seeds:
+        ok = seed = 0
+        while ok < target and seed < 4 * target:
             req = requirements_for(scaled_scenario(n, seed), ml, dl)
-            rows += run_one(req, n, seed, symmetry=True)
-            if n in no_symmetry_sizes:
-                rows += run_one(req, n, seed, symmetry=False)
-        print(f"  n={n} done", flush=True)
+            pair = run_one(req, n, seed, symmetry=True)
+            rows += pair
+            if pair[0]["found"]:
+                ok += 1
+                if n in no_symmetry_sizes:
+                    rows += run_one(req, n, seed, symmetry=False)
+            seed += 1
+        print(f"  n={n}: {ok} feasible departments, {seed - ok} infeasible", flush=True)
 
     CSV_OUT.parent.mkdir(parents=True, exist_ok=True)
     with CSV_OUT.open("w", newline="") as f:

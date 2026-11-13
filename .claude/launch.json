@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ward-board",
+      "runtimeExecutable": "/home/hp/Documents/School/S4a/Intelligence Artificielle/Projet/hospital/.venv/bin/python",
+      "runtimeArgs": ["/home/hp/Documents/School/S4a/Intelligence Artificielle/Projet/hospital/src/web_server.py", "--port", "8000"],
+      "port": 8000
+    }
+  ]
+}

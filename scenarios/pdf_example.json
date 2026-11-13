@@ -3,7 +3,7 @@
   "notes": [
     "Patients, resources and the two predictions for P1 come from the project PDF (Complete end-to-end example).",
     "Values the PDF leaves out (P1's MAP history, temperatures, respiratory rates, P2/P3 vitals) are illustrative.",
-    "Predictions listed here are used as given; run the demo with --models to replace them with the trained models' output."
+    "Predictions listed here are used by block2_demo.py and by agent_demo.py / agent_cli.py with --given; otherwise the trained ML and DL models compute them."
   ],
   "patients": [
     {

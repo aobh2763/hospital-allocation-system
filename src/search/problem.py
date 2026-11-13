@@ -47,10 +47,10 @@ the allocation hurts patients and wastes scarce resources":
     non-specialist for a specialist need          +6  fallback doctor (announced)
     emergency bed for an ICU need                 +10 fallback bed (announced)
     leaving a Medium patient waiting              8   over its 60-minute max wait
-    leaving a Low patient waiting                 3   Low tolerates 120 minutes
+    leaving a Low patient waiting                 5   Low tolerates 120 minutes
 
 The order of the numbers is what matters: serving a patient (2 to 4) is
-cheaper than leaving them waiting (3 or 8), so free resources go to waiting
+cheaper than leaving them waiting (5 or 8), so free resources go to waiting
 patients, Medium before Low. Relocating someone (4) is cheaper than putting a
 Critical patient in an emergency bed (10), so an ICU bed is freed whenever
 possible, as the team asked; the fallback is used only when no ICU bed can be
@@ -89,9 +89,9 @@ COST_EMERGENCY_FOR_EXAM = 2
 COST_RELOCATE = 4
 COST_FALLBACK_DOCTOR = 6
 COST_FALLBACK_BED = 10
-COST_WAIT = {"Medium": 8, "Low": 3}
+COST_WAIT = {"Medium": 8, "Low": 5}
 # Only used when no valid allocation exists (relaxed search, result flagged invalid)
-COST_WAIT_RELAXED = {"Critical": 100, "High": 40, "Medium": 8, "Low": 3}
+COST_WAIT_RELAXED = {"Critical": 100, "High": 40, "Medium": 8, "Low": 5}
 MANDATORY = ("Critical", "High")
 
 COST_TABLE = [
@@ -106,6 +106,7 @@ COST_TABLE = [
 ]
 
 BED_TYPES = {"ICU": "icu", "Emergency": "emergency", "ExamRoom": "exam_room"}
+BED_RANK = {"exam_room": 1, "emergency": 2, "icu": 3}
 
 
 @dataclass(frozen=True)
@@ -161,22 +162,34 @@ class AllocationProblem:
     next_patient: dict[str, int] = field(init=False)
 
     def __post_init__(self) -> None:
-        waiting = [pid for pid, p in self.patients.items() if p["waiting"] and p["risk"]]
-        waiting.sort(key=lambda pid: (self.patients[pid]["priority"], _pid_key(pid)))
-        self.order = waiting
-        self.slots, self.first_slot, self.next_patient = [], {}, {}
-        for pid in waiting:
-            self.first_slot[pid] = len(self.slots)
-            self.slots += patient_slots(pid, self.patients[pid])
-            self.next_patient[pid] = len(self.slots)
-        # patients under treatment who hold a bed of a type they no longer need
-        self.movable = {}
+        # patients under treatment in a lower bed than they need (e.g. a fallback
+        # emergency bed for an ICU need): they may move up when a bed frees
+        self.upgrades: dict[str, tuple[str, str]] = {}
+        # patients under treatment in a higher bed than they need, not Critical:
+        # they may move down to free their bed for someone else
+        self.movable: dict[str, tuple[str, str]] = {}
         for r in self.resources.values():
             if r.kind == "bed" and r.holder and r.holder in self.patients:
                 p = self.patients[r.holder]
                 needed = BED_TYPES.get(p.get("bed") or "")
-                if not p["waiting"] and needed and needed != r.type and p["risk"] != "Critical":
+                if p["waiting"] or not needed or needed == r.type:
+                    continue
+                if BED_RANK[needed] > BED_RANK[r.type]:
+                    self.upgrades[r.holder] = (r.rid, needed)
+                elif p["risk"] != "Critical":
                     self.movable[r.rid] = (r.holder, needed)
+
+        order = [pid for pid, p in self.patients.items() if p["waiting"] and p["risk"]] + list(self.upgrades)
+        order.sort(key=lambda pid: (self.patients[pid]["priority"], _pid_key(pid)))
+        self.order = order
+        self.slots, self.first_slot, self.next_patient = [], {}, {}
+        for pid in order:
+            self.first_slot[pid] = len(self.slots)
+            if pid in self.upgrades:
+                self.slots.append(Slot(pid, "upgrade", self.upgrades[pid][1]))
+            else:
+                self.slots += patient_slots(pid, self.patients[pid])
+            self.next_patient[pid] = len(self.slots)
         self._precompute()
 
     # ---------------------------------------------------------------- problem API
@@ -208,6 +221,10 @@ class AllocationProblem:
             return
         slot = self.slots[s.pos]
         pid = slot.pid
+        if slot.kind == "upgrade":
+            yield from self._upgrade(slot, s)
+            yield from self._relocations(slot, s)
+            return
         if s.pos == self.first_slot[pid] and (self.relaxed or not self.mandatory(pid)):
             risk = self.patients[pid]["risk"]
             note = (f"{pid} ({risk}) CANNOT BE SERVED: left waiting, escalate"
@@ -253,6 +270,21 @@ class AllocationProblem:
             options += [Action("AllocateEquipment", pid, r.rid, COST_ASSIGN, "assignment")
                         for r in self.free_of("equipment", need, s)]
         return _one_per_kind(options, self.resources) if self.symmetry else options
+
+    def _upgrade(self, slot: Slot, s: State) -> Iterator[tuple[Action, State]]:
+        """A patient under treatment in a lower bed than needed: move up if a
+        bed of the right type is free, otherwise stay (as costly as a fallback)."""
+        pid, (held, needed) = slot.pid, self.upgrades[slot.pid]
+        free = self.free_of("bed", needed, s)
+        if free:
+            target = min(free, key=lambda r: _pid_key(r.rid)).rid
+            yield (Action("Relocate", pid, held, COST_RELOCATE, "upgrade",
+                          f"{pid} moves up from {held} to {target}: a bed of the type they need is free",
+                          target=target),
+                   State(s.pos + 1, s.used | {target}, s.freed | {held}, s.moved | {pid}))
+        yield (Action("StayInFallback", pid, held, COST_FALLBACK_BED, "fallback bed",
+                      f"{pid} stays in {held}: still no {_pretty(needed)} bed free"),
+               State(s.pos + 1, s.used, s.freed, s.moved))
 
     def _relocations(self, slot: Slot, s: State) -> Iterator[tuple[Action, State]]:
         """Free a bed of the needed type by moving a patient who no longer needs it.
@@ -349,6 +381,10 @@ class AllocationProblem:
         for i in range(len(self.order) - 1, -1, -1):
             pid = self.order[i]
             agg = self._suffix[i + 1].copy()
+            if pid in self.upgrades:              # moving up (4) or staying (10): at least 4
+                agg.total += COST_RELOCATE
+                self._suffix[i] = agg
+                continue
             slots = self.slots[self.first_slot[pid]:self.next_patient[pid]]
             if self.relaxed or not self.mandatory(pid):
                 serve, wait = len(slots), self.wait_cost(pid)

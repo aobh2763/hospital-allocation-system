@@ -128,12 +128,17 @@ class KnowledgeBase:
         self._call("kb_remove_patient(P)", P=to_atom(pid))
 
     def refresh_patient(self, p: Patient) -> None:
-        """Replace a patient's facts after new measurements; predictions are kept."""
-        preds = [(src, r) for src in ("ml", "dl") for r in self.solutions(f"{src}_risk({to_atom(p.pid)},L,P)")]
+        """Replace a patient's facts after new measurements; predictions and the
+        resources the patient holds are kept."""
+        a = to_atom(p.pid)
+        preds = [(src, r) for src in ("ml", "dl") for r in self.solutions(f"{src}_risk({a},L,P)")]
+        held = [r["R"] for r in self.solutions(f"assigned({a},R)")]
         self.remove_patient(p.pid)
         self.add_all(patient_facts(p))
         for src, r in preds:
-            self.add(f"{src}_risk({to_atom(p.pid)},{r['L']},{r['P']})")
+            self.add(f"{src}_risk({a},{r['L']},{r['P']})")
+        for rid in held:
+            self.add(f"assigned({a},{rid})")
 
     def set_prediction(self, pid: str, source: str, level: str, prob: float) -> None:
         """Insert (or replace) ``ML_Risk(P, Level, Prob)`` / ``DL_Risk(P, Level, Prob)``."""
