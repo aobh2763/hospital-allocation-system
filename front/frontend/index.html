@@ -8,13 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>try{var t=localStorage.getItem("ward-theme")||"light";if(t==="dark"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.classList.add("dark");}catch(e){}</script>
   <link rel="stylesheet" href="./style.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
   <header class="topbar">
     <div class="brand"><span class="brand-mark" aria-hidden="true">+</span><div><strong>Emergency Department</strong><span>Ward board</span></div></div>
-    <div class="top-controls"><label class="scenario-select">Scenario <select id="scenario-picker" aria-label="Choose scenario"></select></label><span class="step-indicator" id="step-indicator">Step —</span><button class="quiet-button" id="models-toggle" type="button">Models —</button><button class="quiet-button" id="reset-button" type="button">Reset</button><button class="icon-button" id="theme-toggle" type="button" aria-label="Switch to night shift" title="Night shift">◐</button></div>
+    <div class="top-controls"><label class="scenario-select">Scenario <select id="scenario-picker" aria-label="Choose scenario"></select></label><span class="step-indicator" id="step-indicator">Step —</span><button class="quiet-button" id="models-toggle" type="button">Models —</button><button class="quiet-button" id="reset-button" type="button">Reset</button><div class="theme-switch" role="group" aria-label="Colour theme"><span class="theme-label">Theme</span><button type="button" data-theme="light" aria-pressed="false">Light</button><button type="button" data-theme="dark" aria-pressed="false">Dark</button><button type="button" data-theme="auto" aria-pressed="false" title="Follow the system setting">Auto</button></div></div>
   </header>
   <div class="modebar"><div class="mode-tabs" role="tablist" aria-label="Workspace mode"><button class="mode-tab active" id="scenario-tab" role="tab" aria-selected="true">Scenario</button><button class="mode-tab" id="admit-tab" role="tab" aria-selected="false">Admit patient</button></div><div class="connection" id="connection-status"><span class="status-dot"></span> Connecting to agent</div></div>
   <main>

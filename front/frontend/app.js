@@ -153,6 +153,19 @@ $('#drawer-close').addEventListener('click',closeDrawer); $('#drawer-backdrop').
 $('#load-example').addEventListener('click',loadExample); $('#add-history').addEventListener('click',()=>addHistoryRow()); $('#admit-form').addEventListener('submit',submitAdmission); $('#empty-department').addEventListener('click',()=>reset(state.data?.scenario?.file,state.data?.use_models,true));
 $('#query-form').addEventListener('submit',async e=>{e.preventDefault();const text=$('#query-input').value.trim();try{const result=await api('/api/query',{method:'POST',body:JSON.stringify({text})});const out=$('#query-output');if(result.kind==='proof')out.textContent=result.text;else out.innerHTML=`<table><thead><tr>${result.variables.map(v=>`<th>${escapeHtml(v)}</th>`).join('')}</tr></thead><tbody>${result.rows.map(row=>`<tr>${result.variables.map(v=>`<td>${escapeHtml(row[v]??'')}</td>`).join('')}</tr>`).join('')}</tbody></table>`;}catch(err){$('#query-output').textContent=err.message;}});
 $$('[data-query]').forEach(b=>b.addEventListener('click',()=>{$('#query-input').value=b.dataset.query;$('#query-form').requestSubmit();}));
-$('#theme-toggle').addEventListener('click',()=>{document.body.classList.toggle('dark');const dark=document.body.classList.contains('dark');localStorage.setItem('ward-theme',dark?'dark':'light');$('#theme-toggle').setAttribute('aria-label',dark?'Switch to day shift':'Switch to night shift');});
-if(localStorage.getItem('ward-theme')==='dark'){document.body.classList.add('dark');$('#theme-toggle').setAttribute('aria-label','Switch to day shift');}
+// Colour theme: light, dark, or auto (follows the operating system). The class
+// sits on <html> so the whole page, form controls and scrollbars switch.
+const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+function applyTheme(choice) {
+  if (!['light', 'dark', 'auto'].includes(choice)) choice = 'light';
+  try { localStorage.setItem('ward-theme', choice); } catch {}
+  const dark = choice === 'dark' || (choice === 'auto' && darkQuery.matches);
+  document.documentElement.classList.toggle('dark', dark);
+  document.documentElement.dataset.theme = choice;
+  $$('.theme-switch button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === choice)));
+}
+$$('.theme-switch button').forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.theme)));
+darkQuery.addEventListener('change', () => { if (document.documentElement.dataset.theme === 'auto') applyTheme('auto'); });
+let savedTheme = 'light'; try { savedTheme = localStorage.getItem('ward-theme') || 'light'; } catch {}
+applyTheme(savedTheme);
 loadInitial().catch(error=>{ $('#connection-status').innerHTML=`<span class="status-dot"></span> Agent unavailable`; $('#agent-content').innerHTML=`<div class="empty-state">Could not connect to the agent: ${escapeHtml(error.message)}. Start the Python server and reload.</div>`; });
